@@ -57,7 +57,7 @@ with open("ips.txt", "r") as f:
 first_ip = ipaddress.IPv4Address('192.168.0.110')
 last_ip = ipaddress.IPv4Address('192.168.0.115')
 IP_Range = range(int(first_ip), int(last_ip))
-
+#Using for-loop with manual intervention
 for ip_int in IP_Range:
     default = {
         'device_type': 'cisco_ios',
