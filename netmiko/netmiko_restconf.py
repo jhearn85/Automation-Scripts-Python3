@@ -8,6 +8,7 @@ import ipaddress
 from netmiko .ssh_exception import NetMikoAuthenticationException, NetMikoTimeoutException
 from getpass import getpass
 import time
+from multiprocessing import Pool
 start_time = datetime.now()
 """
 THIS IS FOR TEMPLATING
@@ -54,19 +55,18 @@ with open("ips.txt", "r") as f:
 ##########################################
 ### If using subnet with unknown hosts:###
 ##########################################
-first_ip = ipaddress.IPv4Address('192.168.0.110')
-last_ip = ipaddress.IPv4Address('192.168.0.115')
-IP_Range = range(int(first_ip), int(last_ip))
 
-for ip_int in IP_Range:
+IP_Group = [str(ip) for ip in ipaddress.IPv4Network('192.128.0.0/29')]
+
+def run_script(ip):
     default = {
         'device_type': 'cisco_ios',
-        'host': str(ipaddress.IPv4Address(ip_int)),
+        'host': ip,
         'username': "admin",
         'password': "password",
         'timeout' : 1,
     }
-    print("Connecting to " + str(ipaddress.IPv4Address(ip_int)))
+    print("Connecting to " + str(ip))
     time.sleep(1)
     #Attempt logins via default creds
     try:
@@ -76,22 +76,22 @@ for ip_int in IP_Range:
         net_connect.disconnect()
         print("Configuration successful")
         time.sleep(1)
-        continue
+        
     except (NetMikoTimeoutException):
         print("Device unreachable, continuing to next device")
-        continue
+        
     except (EOFError):
         print("Authentication failed, attempting logon with explicit credentials")
         time.sleep(3)
-        pass   
+           
     except (NetMikoAuthenticationException):
         print("Authentication failed, attempting logon with explicit credentials")
         time.sleep(3)
-        pass
+        
     try:
         explicit = {
             'device_type': 'cisco_ios',
-            'host': str(ipaddress.IPv4Address(ip_int)),
+            'host': ip,
             'username': str(input("What is your username: ")),
             'password': str(getpass()),
             'timeout' : int("1"),
@@ -103,6 +103,11 @@ for ip_int in IP_Range:
         time.sleep(1)
     except (NetMikoAuthenticationException, NetMikoTimeoutException):
         print('Failed to Connect to ' + explicit['host'])
+
+if __name__ == "__main__":
+    # Pool(5) means 5 process / devices will be run at a time, until youve gone through the device list
+    with Pool(5) as p:
+        print(p.map(run_script, IP_Group))
 
 
 end_time = datetime.now()
