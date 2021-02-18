@@ -9,6 +9,7 @@ from netmiko .ssh_exception import NetMikoAuthenticationException, NetMikoTimeou
 from getpass import getpass
 import time
 from multiprocessing import Pool
+from multiprocessing import Process
 start_time = datetime.now()
 """
 THIS IS FOR TEMPLATING
@@ -56,38 +57,87 @@ with open("ips.txt", "r") as f:
 ### If using subnet with unknown hosts:###
 ##########################################
 
-IP_Group = [str(ip) for ip in ipaddress.IPv4Network('192.128.0.0/29')]
+IP_Group = [str(ip) for ip in ipaddress.IPv4Network('192.168.0.112/28')]
 
+device_list = []
+def devices():
+    for ip_address in IP_Group:
+        device = {
+            "ip": ip_address,
+            "username": "username",
+            "password": "password",
+            "device_type": "cisco_ios"
+        }
+        device_list.append(device)
+    return device_list
+
+
+
+Failed_IPs = []
+def send_cmd(device):
+    with ConnectHandler(**device) as conn:
+        try:
+            conn.send_config_set("restconf")
+        except:
+            print("FAIL")
+processes = []
+
+for device in devices():
+    p = Process(target=send_cmd, args=(device,))
+    processes.append(p)
+
+for process in processes:
+    process.start()
+    
+ 
+    # wait for process to end before termination
+for process in processes:
+    process.join()
+
+
+end_time = datetime.now()
+total_time = end_time - start_time
+print(total_time)
+
+print(Failed_IPs)
+
+
+
+
+
+
+
+
+"""
 def run_script(ip):
     default = {
         'device_type': 'cisco_ios',
         'host': ip,
-        'username': "admin",
+        'username': "username",
         'password': "password",
         'timeout' : 1,
     }
-    print("Connecting to " + str(ip))
-    time.sleep(1)
+    print("test")
     #Attempt logins via default creds
     try:
         net_connect = ConnectHandler(**default)
         output = net_connect.send_config_set("restconf")
         #print(f"\n\n---------- Device {a_router['device_type']} {a_router['host']}----------") - ignore for now
         net_connect.disconnect()
-        print("Configuration successful")
-        time.sleep(1)
-        
-    except (NetMikoTimeoutException):
-        print("Device unreachable, continuing to next device")
-        
-    except (EOFError):
-        print("Authentication failed, attempting logon with explicit credentials")
-        time.sleep(3)
-           
-    except (NetMikoAuthenticationException):
-        print("Authentication failed, attempting logon with explicit credentials")
-        time.sleep(3)
-        
+        print("successful")
+    except (NetMikoTimeoutException) as e:
+        Failed_IPs.append(ip)      
+    except (EOFError) as e:
+        Failed_IPs.append(ip)      
+    except (NetMikoAuthenticationException) as e:
+        Failed_IPs.append(ip)      
+"""
+
+
+
+
+"""
+
     try:
         explicit = {
             'device_type': 'cisco_ios',
@@ -104,27 +154,9 @@ def run_script(ip):
     except (NetMikoAuthenticationException, NetMikoTimeoutException):
         print('Failed to Connect to ' + explicit['host'])
 
-if __name__ == "__main__":
-    # Pool(5) means 5 process / devices will be run at a time, until youve gone through the device list
-    with Pool(5) as p:
-        print(p.map(run_script, IP_Group))
 
 
-end_time = datetime.now()
-total_time = end_time - start_time
-print(total_time)
-
-
-
-
-
-
-
-
-
-
-
-
+"""
 
 
 
