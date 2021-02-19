@@ -22,7 +22,6 @@ with open("ips.txt", "r") as f:
 ##########################################
 ### If using subnet with unknown hosts:###
 ##########################################
-<<<<<<< HEAD
 
 IP_Group = [str(ip) for ip in ipaddress.IPv4Network('192.168.0.112/28')]
 #Iterate through IP's and create netmiko framework for each
@@ -34,49 +33,6 @@ def devices():
             "username": "username",
             "password": "password",
             "device_type": "cisco_ios"
-=======
-first_ip = ipaddress.IPv4Address('192.168.0.110')
-last_ip = ipaddress.IPv4Address('192.168.0.115')
-IP_Range = range(int(first_ip), int(last_ip))
-#Using for-loop with manual intervention
-for ip_int in IP_Range:
-    default = {
-        'device_type': 'cisco_ios',
-        'host': str(ipaddress.IPv4Address(ip_int)),
-        'username': "admin",
-        'password': "password",
-        'timeout' : 1,
-    }
-    print("Connecting to " + str(ipaddress.IPv4Address(ip_int)))
-    time.sleep(1)
-    #Attempt logins via default creds
-    try:
-        net_connect = ConnectHandler(**default)
-        output = net_connect.send_config_set("restconf")
-        #print(f"\n\n---------- Device {a_router['device_type']} {a_router['host']}----------") - ignore for now
-        net_connect.disconnect()
-        print("Configuration successful")
-        time.sleep(1)
-        continue
-    except (NetMikoTimeoutException):
-        print("Device unreachable, continuing to next device")
-        continue
-    except (EOFError):
-        print("Authentication failed, attempting logon with explicit credentials")
-        time.sleep(3)
-        pass   
-    except (NetMikoAuthenticationException):
-        print("Authentication failed, attempting logon with explicit credentials")
-        time.sleep(3)
-        pass
-    try:
-        explicit = {
-            'device_type': 'cisco_ios',
-            'host': str(ipaddress.IPv4Address(ip_int)),
-            'username': str(input("What is your username: ")),
-            'password': str(getpass()),
-            'timeout' : int("1"),
->>>>>>> main
         }
         device_list.append(device)
     return device_list
