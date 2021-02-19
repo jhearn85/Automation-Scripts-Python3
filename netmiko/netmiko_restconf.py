@@ -8,8 +8,9 @@ import ipaddress
 from netmiko .ssh_exception import NetMikoAuthenticationException, NetMikoTimeoutException
 from getpass import getpass
 import time
-from multiprocessing import Pool
 from multiprocessing import Process
+from multiprocessing import Manager
+
 start_time = datetime.now()
 """
 THIS IS FOR TEMPLATING
@@ -73,39 +74,56 @@ def devices():
 
 
 
-Failed_IPs = []
-def send_cmd(device):
-    with ConnectHandler(**device) as conn:
-        try:
+
+def send_cmd(device, L):
+    try:
+        with ConnectHandler(**device) as conn:
             conn.send_config_set("restconf")
-        except:
-            print("FAIL")
-processes = []
+            print("Connection to %s Successful" % device["ip"])
+    except:
+        print(f"Connection to Device {device['ip']} failed.")
+        L.append(device["ip"])
 
-for device in devices():
-    p = Process(target=send_cmd, args=(device,))
-    processes.append(p)
-
-for process in processes:
-    process.start()
-    
- 
-    # wait for process to end before termination
-for process in processes:
-    process.join()
-
-
+Failed_Devices = []
+if __name__ == '__main__':
+    with Manager() as manager:
+        L = manager.list()
+        processes = []
+        for device in devices():
+            p = Process(target=send_cmd, args=(device, L))
+            processes.append(p)
+            p.start()
+        # wait for process to end before termination
+        for process in processes:
+            process.join()
+        Failed_Devices = list(L)
+print(Failed_Devices)
 end_time = datetime.now()
 total_time = end_time - start_time
 print(total_time)
 
-print(Failed_IPs)
 
 
-
-
-
-
+if Failed_Devices == None:
+    print("OK BYE")
+else:
+    choice = input("Would you like to retry failed devices with manual login? Y/n ").lower()
+    if choice == "y":
+        for ip_address in Failed_Devices:
+                device = {
+                    "ip": ip_address,
+                    "username": prompt("Give a Username: "),
+                    "password": getpass(),
+                    "device_type": "cisco_ios"
+                }
+        try:
+            with ConnectHandler(**device) as connection:
+                conn.send_config_set("restconf")
+                print("Configuration Successful")
+        except:
+            print("Ya failed again chief")
+        else:
+            print("Too Bad!")
 
 
 """
